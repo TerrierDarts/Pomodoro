@@ -1,21 +1,24 @@
 -- Pomodoro Pro Timer V1 for OBS By Animal shadow
+-- V2 Edits Added By TerrierDarts
 obs = obslua
 source_name_timer = "PomodoroTimer"
-source_name_state = "PomodoroState"   -- Change this to the name of your text source in OBS
+source_name_state = "PomodoroState"
+source_name_progress = "PomodoroProgress"
 focus_duration_minutes = 90 -- default 90 minutes
 short_break_minutes = 15  -- default 15 minutes
 long_break_minutes = 20 -- default 20 minutes
 short_break_counts = 4
 timer_active = false
 time_left = focus_duration_minutes * 60
-session_count = 0
+session_count = 1
+session_target = 5
 mode = "focus"  -- Initialize the mode as focus
 
 -- Customizable messages
 focus_message = "Focus Time!"  -- Default focus message
 short_break_message = "Short Break!"  -- Default short break message
 long_break_message = "Long Break!"  -- Default long break message
-
+session_text = "%C/%T"
 -- Function to set the timer text
 
 function set_timer_text(text)
@@ -31,6 +34,19 @@ end
 
 function set_state_text(text)
     local source = obs.obs_get_source_by_name(source_name_state)
+    if source ~= nil then
+        local settings = obs.obs_data_create()
+        obs.obs_data_set_string(settings, "text", text)
+        obs.obs_source_update(source, settings)
+        obs.obs_data_release(settings)
+        obs.obs_source_release(source)
+    end
+end
+
+function set_progress_text(textRaw)
+
+    text = textRaw:gsub("%%C",session_count):gsub("%%T",session_target)
+    local source = obs.obs_get_source_by_name(source_name_progress)
     if source ~= nil then
         local settings = obs.obs_data_create()
         obs.obs_data_set_string(settings, "text", text)
@@ -60,6 +76,7 @@ function timer_callback()
             set_state_text(focus_message)
             mode = "focus"
             session_count = session_count + 1
+            set_progress_text(session_text)
         end
     else
         local minutes = math.floor(time_left / 60)
@@ -74,8 +91,9 @@ function start_timer(pressed)
         timer_active = true
         time_left = focus_duration_minutes * 60  -- Reset time to full duration
         mode = "focus"  -- Reset mode to focus
-        session_count = 0  -- Reset session count
+        session_count = 1  -- Reset session count
         set_state_text(focus_message)  -- Show the initial focus message
+        set_progress_text(session_text)
         obs.timer_add(timer_callback, 1000)
     end
 end
@@ -111,17 +129,20 @@ function script_properties()
     local props = obs.obs_properties_create()
     local text_sources1 = obs.obs_properties_add_list(props, "source_name_timer", "Timer Source Name",obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
     local text_sources2 = obs.obs_properties_add_list(props, "source_name_state", "State Source Name",obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
+    local text_sources3 = obs.obs_properties_add_list(props, "source_name_progress", "Progress Source Name",obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
     populate_text_sources(text_sources1)
     populate_text_sources(text_sources2)
-    -- obs.obs_properties_add_text(props, "source_name_timer", "Timer Source Name", obs.OBS_TEXT_DEFAULT)
-    -- obs.obs_properties_add_text(props, "source_name_state", "State Source Name", obs.OBS_TEXT_DEFAULT)
+    populate_text_sources(text_sources3)
+
     obs.obs_properties_add_int(props, "focus_duration_minutes", "Focus Duration (minutes)", 1, 180, 1)
     obs.obs_properties_add_int(props, "short_break_minutes", "Short Break (minutes)", 1, 30, 1)
     obs.obs_properties_add_int(props, "long_break_minutes", "Long Break (minutes)", 1, 60, 1)
     obs.obs_properties_add_int(props, "short_break_counts", "Short Breaks Counts", 1, 60, 4)
+    obs.obs_properties_add_int(props, "session_target", "Session Target", 1, 60, 5)
     obs.obs_properties_add_text(props, "focus_message", "Focus State", obs.OBS_TEXT_DEFAULT)
     obs.obs_properties_add_text(props, "short_break_message", "Short Break State", obs.OBS_TEXT_DEFAULT)
     obs.obs_properties_add_text(props, "long_break_message", "Long Break State", obs.OBS_TEXT_DEFAULT)
+    obs.obs_properties_add_text(props, "session_text", "Progress Format(%C & %T)", obs.OBS_TEXT_DEFAULT)
     obs.obs_properties_add_button(props, "start_button", "Start Timer", start_timer)
     obs.obs_properties_add_button(props, "pause_button", "Pause Timer", pause_timer)
     obs.obs_properties_add_button(props, "stop_button", "Stop Timer", stop_timer)
@@ -133,13 +154,16 @@ end
 function script_load(settings)
     source_name_timer = obs.obs_data_get_string(settings, "source_name_timer") or source_name_timer
     source_name_state = obs.obs_data_get_string(settings, "source_name_state") or source_name_state
+    source_name_progress = obs.obs_data_get_string(settings, "source_name_progress") or source_name_progress
     focus_duration_minutes = obs.obs_data_get_int(settings, "focus_duration_minutes") or focus_duration_minutes
     short_break_minutes = obs.obs_data_get_int(settings, "short_break_minutes") or short_break_minutes
     long_break_minutes = obs.obs_data_get_int(settings, "long_break_minutes") or long_break_minutes
     short_break_counts = obs.obs_data_get_int(settings, "short_break_counts") or short_break_counts
+    session_target = obs.obs_data_get_int(settings, "session_target") or session_target
     focus_message = obs.obs_data_get_string(settings, "focus_message") or focus_message
     short_break_message = obs.obs_data_get_string(settings, "short_break_message") or short_break_message
     long_break_message = obs.obs_data_get_string(settings, "long_break_message") or long_break_message
+    session_text = obs.obs_data_get_string(settings, "session_text") or session_text
 
     obs.obs_hotkey_register_frontend("startPomo","Start Pomodoro", start_timer)
     obs.obs_hotkey_register_frontend("togglePomo","Pause/Resume Pomodoro", pause_timer)
@@ -150,26 +174,32 @@ end
 function script_save(settings)
     obs.obs_data_set_string(settings, "source_name_timer", source_name_timer)
     obs.obs_data_set_string(settings, "source_name_state", source_name_state)
+    obs.obs_data_set_string(settings, "source_name_state", source_name_progress)
     obs.obs_data_set_int(settings, "focus_duration_minutes", focus_duration_minutes)
     obs.obs_data_set_int(settings, "short_break_minutes", short_break_minutes)
     obs.obs_data_set_int(settings, "long_break_minutes", long_break_minutes)
     obs.obs_data_set_int(settings, "short_break_counts", short_break_counts)
+    obs.obs_data_set_int(settings, "session_target", session_target)
     obs.obs_data_set_string(settings, "focus_message", focus_message)
     obs.obs_data_set_string(settings, "short_break_message", short_break_message)
     obs.obs_data_set_string(settings, "long_break_message", long_break_message)
+    obs.obs_data_set_string(settings, "session_text", long_break_message)
 end
 
 -- Update the script settings
 function script_update(settings)
     source_name_timer = obs.obs_data_get_string(settings, "source_name_timer") or source_name_timer
     source_name_state = obs.obs_data_get_string(settings, "source_name_state") or source_name_state
+    source_name_progress = obs.obs_data_get_string(settings, "source_name_progress") or source_name_progress
     focus_duration_minutes = obs.obs_data_get_int(settings, "focus_duration_minutes") or focus_duration_minutes
     short_break_minutes = obs.obs_data_get_int(settings, "short_break_minutes") or short_break_minutes
     long_break_minutes = obs.obs_data_get_int(settings, "long_break_minutes") or long_break_minutes
     short_break_counts = obs.obs_data_get_int(settings, "short_break_counts") or short_break_counts
+    session_target = obs.obs_data_get_int(settings, "session_target") or session_target
     focus_message = obs.obs_data_get_string(settings, "focus_message") or focus_message
     short_break_message = obs.obs_data_get_string(settings, "short_break_message") or short_break_message
     long_break_message = obs.obs_data_get_string(settings, "long_break_message") or long_break_message
+    session_text = obs.obs_data_get_string(settings, "session_text") or session_text
 end
 
 function populate_text_sources(list)
