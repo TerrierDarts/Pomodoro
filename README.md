@@ -1,3 +1,5 @@
+![Preview](preview.gif)
+
 This is an Edited Version of animalshadow's Original Work
 
 - https://obsproject.com/forum/resources/pomodoro-pro-timer-for-obs.1859/
@@ -24,6 +26,7 @@ Usage:
 2. Customize Durations and Messages: Enter your desired focus, short break, and long break durations (in minutes), and customize the display messages according to your preference.
 3. Start the Timer: Use the 'Start Timer' button to begin the countdown. The timer will run through focus periods and breaks, updating the text source accordingly.
 4. Pause/Stop the Timer: Utilize the 'Stop Timer' button to pause the countdown whenever needed.
+![alt text](settings.png)
 
 ## Tips:
 
@@ -44,11 +47,14 @@ Usage:
     * `startPomo`
     * `togglePomo`
     * `stopPomo`
+![alt text](hotkeys.png)
 - Added Control to Short Break Counts before a long break. 
     * This control means you have X number of small breaks before a long break, so if it was set to 3 you would have 3 short breaks before having 1 long break.
 - Control Progress Format with `%C` and `%T`
 - Trigger Filter "Pomo Change" on a change.
 
+![alt text](filter.png)
+
+
 # To Come
  - Don't let the progress go over, meaning 
-

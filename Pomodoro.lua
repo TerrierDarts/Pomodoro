@@ -97,7 +97,7 @@ function start_timer(pressed)
     if not timer_active then
         timer_active = true
         time_left = focus_duration_minutes * 60  -- Reset time to full duration
-        mode = "focus"  -- Reset mode to focus
+        mode = "break"  -- Reset mode to focus
         session_count = 1  -- Reset session count
         set_state_text(focus_message)  -- Show the initial focus message
         set_progress_text(session_text)
