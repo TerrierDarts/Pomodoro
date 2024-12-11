@@ -47,7 +47,9 @@ Usage:
     * `startPomo`
     * `togglePomo`
     * `stopPomo`
-![alt text](hotkeys.png)
+
+    ![alt text](hotkeys.png)
+
 - Added Control to Short Break Counts before a long break. 
     * This control means you have X number of small breaks before a long break, so if it was set to 3 you would have 3 short breaks before having 1 long break.
 - Control Progress Format with `%C` and `%T`
